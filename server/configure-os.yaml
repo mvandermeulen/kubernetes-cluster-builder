@@ -1,0 +1,260 @@
+#
+# --------------------------------
+# TODO: Do a search and replace for:
+# TODO: ----------------------------------------------------------------
+# TODO:   kube1   --> username
+# TODO:
+# TODO: be sure to update the "inventory" file
+# TODO: be sure to update the "run-me-first-as-sudo.sh" file
+#
+#
+#
+#
+# -------- Configure the Operating System
+#
+- name: Setting up the OS
+  hosts: all
+  become: true
+  become_user: root
+
+  vars_prompt:
+    # ask the user for the correct date
+    - name: today_date
+      prompt: Enter the Date (yyyy-mm-dd)
+      private: false
+
+    # ask the user for the correct time
+    - name: today_time
+      prompt: Enter the Time (hh:mm:ss)
+      private: false
+
+  tasks:
+    # -------- Initialize
+
+    # update, upgrade and autoremove
+    - name: Updating, Upgrading and Autoremoving
+      apt:
+        autoclean: yes
+        autoremove: yes
+        state: latest
+        update_cache: yes
+        cache_valid_time: 3600 # 1 hour
+        upgrade: yes
+
+    # -------- Start the Initial Setup
+
+    # install standard packages: APT
+    - name: Installing APT Packages
+      apt:
+        name:
+          - apache2-utils
+          - bat
+          - btop
+          - cmatrix
+          - linux-modules-extra-raspi
+          - ncdu
+          - neofetch
+          - nfs-common
+          - nmap
+          - open-iscsi
+          - openssh-client
+          - openssh-server
+          - python3
+          - python3-pip
+          - ranger
+          - rsync
+          - samba
+          - sshfs
+          - sshpass
+          - systemd-timesyncd
+          - tree
+          - util-linux
+          - vim
+          - wget
+          - whois
+          - zip
+        state: latest
+
+    # add aliases kube1
+    - name: Adding Aliases for "kube1"
+      blockinfile:
+        path: /home/kube1/.bash_aliases
+        create: yes
+        state: present
+        block: |
+          alias bat='batcat '
+          alias filesys='echo && echo Devices by UUID && sudo ls -lF /dev/disk/by-uuid/ && echo && sudo df -hT -x squashfs -x tmpfs -x devtempfs '
+          alias dockersys='docker image ls -a && echo && docker container ls -a'
+          alias dockerremote='curl -i  https://192.168.7.150/v2/_catalog | grep { | python3 -m json.tool'
+          alias kubesys='echo NODES && printf %"$COLUMNS"s |tr " " "-" && kubectl get nodes && echo && echo PODS && printf %"$COLUMNS"s |tr " " "-" && kubectl get pods --all-namespaces'          
+          alias kubetoken='sudo cat /var/lib/rancher/k3s/server/node-token'
+          alias kubedashboardtoken='echo && kubectl describe secrets/admin-user -n kubernetes-dashboard | grep token: && echo'
+          alias tools='echo btop, ncdu, nmap, ranger, matrix, h, hg, update, filesys, dockersys, dockerremote, kubesys, kubetoken, kubedashboardtoken'
+          alias h='history '
+          alias hg='history | grep '
+          alias l='ls -lh '
+          alias ll='ls -alh '
+          alias lll='clear && echo && hostname -I && pwd && echo && ls -alh '
+          alias llll='clear && echo && hostname -I && pwd && echo && neofetch '
+          alias matrix='cmatrix -Bsu7 '
+          alias py='python3 '
+          alias pip='pip3 '
+          alias update='sudo apt update && echo && sudo apt upgrade -y && echo && sudo apt autoremove -y '
+        owner: kube1
+        group: kube1
+
+    # add aliases
+    - name: Adding Aliases for "root"
+      blockinfile:
+        path: /root/.bash_aliases
+        create: yes
+        state: present
+        block: |
+          alias bat='batcat '
+          alias filesys='echo && echo Devices by UUID && sudo ls -lF /dev/disk/by-uuid/ && echo && sudo df -hT -x squashfs -x tmpfs -x devtempfs '
+          alias dockersys='docker image ls -a && echo && docker container ls -a'
+          alias dockerremote='curl -i  https://192.168.7.150/v2/_catalog | grep { | python3 -m json.tool'
+          alias kubesys='echo NODES && printf %"$COLUMNS"s |tr " " "-" && kubectl get nodes && echo && echo PODS && printf %"$COLUMNS"s |tr " " "-" && kubectl get pods --all-namespaces'          
+          alias kubetoken='sudo cat /var/lib/rancher/k3s/server/node-token'
+          alias kubedashboardtoken='echo && kubectl describe secrets/admin-user -n kubernetes-dashboard | grep token: && echo'
+          alias tools='echo btop, ncdu, nmap, ranger, matrix, h, hg, update, filesys, dockersys, dockerremote, kubesys, kubetoken, kubedashboardtoken'
+          alias h='history '
+          alias hg='history | grep '
+          alias l='ls -lh '
+          alias ll='ls -alh '
+          alias lll='clear && echo && hostname -I && pwd && echo && ls -alh '
+          alias llll='clear && echo && hostname -I && pwd && echo && neofetch '
+          alias matrix='cmatrix -Bsu7 '
+          alias py='python3 '
+          alias pip='pip3 '
+          alias update='sudo apt update && echo && sudo apt upgrade -y && echo && sudo apt autoremove -y '
+        owner: root
+        group: root
+
+    # update prompt
+    - name: Updating Prompt for "kube1"
+      ansible.builtin.blockinfile:
+        path: /home/kube1/.bashrc
+        block: "{{ item }}"
+        owner: kube1
+        group: kube1
+      with_items:
+        - "{{lookup('ansible.builtin.file', './prompt.user.sh') }}"
+
+    # update prompt
+    - name: Updating Prompt for "root"
+      ansible.builtin.blockinfile:
+        path: /root/.bashrc
+        block: "{{ item }}"
+        owner: root
+        group: root
+      with_items:
+        - "{{lookup('ansible.builtin.file', './prompt.root.sh') }}"
+
+    # ******** (I believe this is done during the OS image setup) ********
+    # TODO: secure system
+    # TODO: setup a non-root user with sudo permission
+
+    # ******** By default, you can’t login to the root account via SSH on Ubuntu 22.04 ********
+    # TODO: secure SSH access
+    # TODO:   - disable root login over ssh
+
+    # ******** RESEARCH THESE
+    # TODO: secure SSH access
+    # TODO:   - limit login users (AllowUser {username})
+    # TODO:   - install/configure/enable a firewall
+
+    # disable wifi and bluetooth
+    - name: Disabling Wifi and Bluetooth
+      lineinfile:
+        path: /boot/firmware/usercfg.txt
+        line: |
+          dtoverlay=disable-bt
+          dtoverlay=disable-wifi
+        create: yes
+        state: present
+
+    # --------------------------------
+    # ---- add-ons section: start ----
+    # --------------------------------
+    # include any extra installation items here...
+
+    # wipe and format usb drive
+    - name: Wipe and Format USB Drive
+      shell: |
+        sudo wipefs -a /dev/sda
+        sudo parted --script /dev/sda mklabel gpt
+        sudo parted --script -a opt /dev/sda mkpart primary ext4 0% 100%
+        sleep 5
+        sudo mkfs.ext4 -F -L storage01 /dev/sda1
+
+    # add external mounts to /etc/fstab
+    - name: Add External Mounts
+      shell: |
+        sudo mkdir /mnt/storage01
+        sudo echo "UUID=$(lsblk -list -o name,uuid | grep 'sda1' | awk '{print $2}') /mnt/storage01 ext4 defaults 0 2" | sudo tee -a /etc/fstab
+        sudo mount -a
+    - name: Check External Mounts
+      shell: sudo df -h --output=source,avail,pcent,fstype,target | grep sda
+      register: mount_results
+    - debug:
+        var: mount_results.stdout_lines
+
+    # create directory
+    - name: Creating a Remote Directory
+      ansible.builtin.file:
+        path: /home/kube1/required-files/
+        state: directory
+        owner: kube1
+        group: kube1
+        mode: "0777"
+
+    # copy files
+    - name: Copying Files to the Remote Directory
+      ansible.builtin.copy:
+        src: ./required-files/
+        dest: /home/kube1/required-files/
+        owner: kube1
+        group: kube1
+        mode: "0777"
+
+    # running setup
+    - name: Running Setup
+      shell: sudo /home/kube1/required-files/setup.sh kube1 {{ today_date }} {{ today_time }}
+
+    # prepare OS for kubernetes
+    - name: Preparing the OS for Kubernetes
+      shell: |
+        echo "$(cat /boot/firmware/cmdline.txt) cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1" > /boot/firmware/cmdline.txt
+        echo "export KUBECONFIG=/home/kube1/.kube/config" >> /home/kube1/.bashrc
+
+    # install docker
+    - name: Installing Docker
+      shell: /home/kube1/required-files/install-docker.sh kube1
+
+    # clean up
+    - name: Cleaning Up
+      ansible.builtin.file:
+        path: /home/kube1/required-files/
+        state: absent
+
+    # ------------------------------
+    # ---- add-ons section: end ----
+    # ------------------------------
+
+    # -------- Complete the Initial Setup
+
+    # update, upgrade and autoremove
+    - name: Updating, Upgrading and Autoremoving
+      apt:
+        autoclean: yes
+        autoremove: yes
+        state: latest
+        update_cache: yes
+        cache_valid_time: 3600 # 1 hour
+        upgrade: yes
+
+    # reboot
+    - name: Rebooting
+      reboot:
+        reboot_timeout: 3600
