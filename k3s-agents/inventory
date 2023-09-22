@@ -1,0 +1,2 @@
+#192.168.6.100 ansible_connection=ssh ansible_user={{ set-to-server-username }} ansible_ssh_pass={{ set-to-server-ssh-password }}
+192.168.6.113 ansible_connection=ssh ansible_user=kube6 ansible_ssh_pass=kube

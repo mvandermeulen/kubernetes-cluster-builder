@@ -1,0 +1,286 @@
+#
+# --------------------------------
+# TODO: Do a search and replace for:
+# TODO: ----------------------------------------------------------------
+# TODO:   archive --> { this is the username }
+# TODO:
+# TODO: be sure to update the "inventory" file
+# TODO: be sure to update the files in the "setup-files" folder
+#
+#
+#
+# -------- Configure the Operating System
+#
+- name: Setting up the OS for "archive"
+  hosts: all
+  become: true
+  become_user: root
+
+  vars_prompt:
+    # ask the user for the correct date
+    - name: today_date
+      prompt: Enter the Date (yyyy-mm-dd)
+      private: false
+
+    # ask the user for the correct time
+    - name: today_time
+      prompt: Enter the Time (hh:mm:ss)
+      private: false
+
+    # ask the user if they want to disable wifi
+    - name: disable_wifi
+      prompt: Disable Wifi? (y|n)
+      private: false
+
+  tasks:
+    # -------- Initialize
+
+    # update, upgrade and autoremove
+    - name: Updating, Upgrading and Autoremoving
+      apt:
+        autoclean: yes
+        autoremove: yes
+        state: latest
+        update_cache: yes
+        cache_valid_time: 3600 # 1 hour
+        upgrade: yes
+
+    # -------- Start the Initial Setup
+
+    # install standard packages: APT
+    - name: Installing APT Packages
+      apt:
+        name:
+          - apache2-utils
+          - bat
+          - btop
+          - cmatrix
+          - linux-modules-extra-raspi
+          - ncdu
+          - neofetch
+          - nmap
+          - openssh-client
+          - openssh-server
+          - python3
+          - python3-pip
+          - ranger
+          - rsync
+          - samba
+          - sshfs
+          - sshpass
+          - systemd-timesyncd
+          - tree
+          - vim
+          - wget
+          - whois
+          - zip
+        state: latest
+
+    # add aliases
+    - name: Adding Aliases for "archive"
+      blockinfile:
+        path: /home/archive/.bash_aliases
+        create: yes
+        state: present
+        block: |
+          alias bat='batcat '
+          alias filesys='echo && echo Devices by UUID && sudo ls -lF /dev/disk/by-uuid/ && echo && sudo df -hT -x squashfs -x tmpfs -x devtempfs '
+          alias dockersys='docker image ls -a && echo && docker container ls -a'
+          alias dockerremote='curl -i  https://192.168.7.150/v2/_catalog | grep { | python3 -m json.tool'
+          alias tools='echo btop, ncdu, nmap, ranger, matrix, h, hg, update, filesys, dockersys, dockerremote'
+          alias h='history '
+          alias hg='history | grep '
+          alias l='ls -lh '
+          alias ll='ls -alh '
+          alias lll='clear && echo && hostname -I && pwd && echo && ls -alh '
+          alias llll='clear && echo && hostname -I && pwd && echo && neofetch '
+          alias matrix='cmatrix -Bsu7 '
+          alias py='python3 '
+          alias pip='pip3 '
+          alias update='sudo apt update && echo && sudo apt upgrade -y && echo && sudo apt autoremove -y '
+        owner: archive
+        group: archive
+
+    # add aliases
+    - name: Adding Aliases for "root"
+      blockinfile:
+        path: /root/.bash_aliases
+        create: yes
+        state: present
+        block: |
+          alias bat='batcat '
+          alias filesys='echo && echo Devices by UUID && sudo ls -lF /dev/disk/by-uuid/ && echo && sudo df -hT -x squashfs -x tmpfs -x devtempfs '
+          alias dockersys='docker image ls -a && echo && docker container ls -a'
+          alias dockerremote='curl -i  https://192.168.7.150/v2/_catalog | grep { | python3 -m json.tool'
+          alias tools='echo btop, ncdu, nmap, ranger, matrix, h, hg, update, filesys, dockersys, dockerremote'
+          alias h='history '
+          alias hg='history | grep '
+          alias l='ls -lh '
+          alias ll='ls -alh '
+          alias lll='clear && echo && hostname -I && pwd && echo && ls -alh '
+          alias llll='clear && echo && hostname -I && pwd && echo && neofetch '
+          alias matrix='cmatrix -Bsu7 '
+          alias py='python3 '
+          alias pip='pip3 '
+          alias update='sudo apt update && echo && sudo apt upgrade -y && echo && sudo apt autoremove -y '
+        owner: root
+        group: root
+
+    # update prompt
+    - name: Updating Prompt for "archive"
+      ansible.builtin.blockinfile:
+        path: /home/archive/.bashrc
+        block: "{{ item }}"
+        owner: archive
+        group: archive
+      with_items:
+        - "{{lookup('ansible.builtin.file', './prompt.user.sh') }}"
+
+    # update prompt
+    - name: Updating Prompt for "root"
+      ansible.builtin.blockinfile:
+        path: /root/.bashrc
+        block: "{{ item }}"
+        owner: root
+        group: root
+      with_items:
+        - "{{lookup('ansible.builtin.file', './prompt.root.sh') }}"
+
+    # ******** (I believe this is done during the OS image setup) ********
+    # TODO: secure system
+    # TODO: setup a non-root user with sudo permission
+
+    # ******** By default, you can’t login to the root account via SSH on Ubuntu 22.04 ********
+    # TODO: secure SSH access
+    # TODO:   - disable root login over ssh
+
+    # ******** RESEARCH THESE
+    # TODO: secure SSH access
+    # TODO:   - limit login users (AllowUser {username})
+    # TODO:   - install/configure/enable a firewall
+
+    # disable bluetooth
+    - name: Disabling Bluetooth
+      lineinfile:
+        path: /boot/firmware/usercfg.txt
+        line: dtoverlay=disable-bt
+        create: yes
+        state: present
+
+    # disable wifi
+    - name: Disabling Wifi
+      lineinfile:
+        path: /boot/firmware/usercfg.txt
+        line: dtoverlay=disable-wifi
+        create: yes
+        state: present
+      when: disable_wifi == 'y'
+
+    # --------------------------------
+    # ---- add-ons section: start ----
+    # --------------------------------
+
+    # include any extra installation items here...
+
+    # add external mounts to /etc/fstab
+    - name: Adding External Mounts
+      shell: |
+        sudo mkdir /mnt/share
+        sudo chmod 777 /mnt/share
+        sudo echo "UUID=$(lsblk -list -o name,uuid | grep 'sda1' | awk '{print $2}') /mnt/share ext4 defaults 0 2" | sudo tee -a /etc/fstab
+        sudo mkdir /mnt/docker-registry
+        sudo chmod 777 /mnt/docker-registry
+        sudo echo "UUID=$(lsblk -list -o name,uuid | grep 'sda2' | awk '{print $2}') /mnt/docker-registry ext4 defaults 0 2" | sudo tee -a /etc/fstab
+        sudo mount -a
+    - name: Check External Mounts
+      shell: sudo df -h --output=source,avail,pcent,fstype,target | grep sda
+      register: mount_results
+    - debug:
+        var: mount_results.stdout_lines
+
+    # create directory
+    - name: Creating a Remote Directory
+      ansible.builtin.file:
+        path: /home/archive/setup-files/
+        state: directory
+        owner: archive
+        group: archive
+        mode: "0777"
+
+    # copy files
+    - name: Copying Files to the Remote Directory
+      ansible.builtin.copy:
+        src: ./setup-files/
+        dest: /home/archive/setup-files/
+        owner: archive
+        group: archive
+        mode: "0777"
+
+    # delete K3S Folder
+    - name: Deleting K3S Directory
+      shell: |
+        if [ -d /mnt/share/.kubernetes/k3s-tools ]; then
+            rm -r /mnt/share/.kubernetes/k3s-tools
+        fi
+
+    # copy K3S files
+    - name: Copying K3S-TOOLS Folders/Files to the Shared K3S-TOOLS Directory
+      ansible.builtin.copy:
+        src: ../k3s-tools
+        dest: /mnt/share/.kubernetes
+        owner: archive
+        group: archive
+        mode: "0777"
+
+    # set up the correct date and time with auto-sync turned on
+    - name: Setting the correct Date and Time with Auto-Sync turned on
+      shell: /home/archive/setup-files/set-timesync.sh archive {{ today_date }} {{ today_time }}
+
+    # Copying required files to the HOME directory
+    - name: Copying required files to the HOME directory
+      shell: |
+        mv /home/archive/setup-files/run-me-first-as-sudo.sh /home/archive/
+        mv /home/archive/setup-files/01-netcfg.yaml /home/archive/
+        sudo chmod 775 /home/archive/run-me-first-as-sudo.sh
+
+    # install docker
+    - name: Installing Docker
+      shell: /home/archive/setup-files/install-docker.sh archive
+
+    # configure vim
+    - name: Configuring VIM
+      shell: |
+        sudo mkdir -p /home/archive/.vim
+        sudo mkdir -p /home/archive/.vim/autoload
+        sudo mkdir -p /home/archive/.vim/backup
+        sudo mkdir -p /home/archive/.vim/colors
+        sudo mkdir -p /home/archive/.vim/plugged
+        sudo chown archive:archive /home/archive/.vim /home/archive/.vim/autoload /home/archive/.vim/backup /home/archive/.vim/colors /home/archive/.vim/plugged
+        sudo mv /home/archive/setup-files/.vimrc /home/archive/
+
+    # clean up
+    - name: Cleaning Up
+      ansible.builtin.file:
+        path: /home/archive/setup-files/
+        state: absent
+
+    # ------------------------------
+    # ---- add-ons section: end ----
+    # ------------------------------
+
+    # -------- Complete the Initial Setup
+
+    # update, upgrade and autoremove
+    - name: Updating, Upgrading and Autoremoving
+      apt:
+        autoclean: yes
+        autoremove: yes
+        state: latest
+        update_cache: yes
+        cache_valid_time: 3600 # 1 hour
+        upgrade: yes
+
+    # reboot
+    - name: Rebooting
+      reboot:
+        reboot_timeout: 3600
