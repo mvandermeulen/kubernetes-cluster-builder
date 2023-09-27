@@ -47,7 +47,7 @@ echo ----------------------------------------------------------------
 echo
 echo ---------------- COPYING PRIVATE DOCKER REPOSITORY CERTIFICATES
 # copy the certificate from the file-share to "/usr/local/share/ca-certificates/"
-sudo scp "$share_username"@"$share_ip":/mnt/share/.kubernetes/docker-certs/public/ca.crt /usr/local/share/ca-certificates/ca.crt
+sudo scp "$share_username"@"$share_ip":/mnt/archive/kubernetes/docker-certs/public/ca.crt /usr/local/share/ca-certificates/ca.crt
 
 # copy the certificate from the file-share to "/etc/docker/certs.d/{docker_ip}\:5000"
 sudo mkdir -p /etc/docker/certs.d/"$docker_repo_ip"\:5000
@@ -120,7 +120,7 @@ echo
 echo --------[ THE SERVERS NODE TOKEN ]--------
 sudo cat /var/lib/rancher/k3s/server/node-token > /home/"$local_user"/kubernetes.token
 cat /home/"$local_user"/kubernetes.token
-sudo scp /home/"$local_user"/kubernetes.token "$share_username"@"$share_ip":/mnt/share/.kubernetes/kubernetes.token
+sudo scp /home/"$local_user"/kubernetes.token "$share_username"@"$share_ip":/mnt/archive/kubernetes/kubernetes.token
 rm /home/"$local_user"/kubernetes.token
 
 
@@ -155,7 +155,7 @@ echo
 echo --------------------------------------------------
 echo GETTING THE K3S TOOLS INSTALLATION FILES
 echo
-sudo scp -r "$share_username"@"$share_ip":/mnt/share/.kubernetes/k3s-tools/ .
+sudo scp -r "$share_username"@"$share_ip":/mnt/archive/kubernetes/k3s-tools/ .
 echo
 echo Install all of the K3S Agents and then return to install the k3s tools.
 echo "     Change directory to [ k3s-tools ] and run [ setup-k3s-tools.sh ] to complete the Kubernetes setup."

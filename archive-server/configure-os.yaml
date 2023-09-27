@@ -188,9 +188,9 @@
         sudo mkdir /mnt/share
         sudo chmod 777 /mnt/share
         sudo echo "UUID=$(lsblk -list -o name,uuid | grep 'sda1' | awk '{print $2}') /mnt/share ext4 defaults 0 2" | sudo tee -a /etc/fstab
-        sudo mkdir /mnt/docker-registry
-        sudo chmod 777 /mnt/docker-registry
-        sudo echo "UUID=$(lsblk -list -o name,uuid | grep 'sda2' | awk '{print $2}') /mnt/docker-registry ext4 defaults 0 2" | sudo tee -a /etc/fstab
+        sudo mkdir /mnt/archive
+        sudo chmod 777 /mnt/archive
+        sudo echo "UUID=$(lsblk -list -o name,uuid | grep 'sda2' | awk '{print $2}') /mnt/archive ext4 defaults 0 2" | sudo tee -a /etc/fstab
         sudo mount -a
     - name: Check External Mounts
       shell: sudo df -h --output=source,avail,pcent,fstype,target | grep sda
@@ -219,15 +219,15 @@
     # delete K3S Folder
     - name: Deleting K3S Directory
       shell: |
-        if [ -d /mnt/share/.kubernetes/k3s-tools ]; then
-            rm -r /mnt/share/.kubernetes/k3s-tools
+        if [ -d /mnt/archive/kubernetes/k3s-tools ]; then
+            rm -r /mnt/archive/kubernetes/k3s-tools
         fi
 
     # copy K3S files
     - name: Copying K3S-TOOLS Folders/Files to the Shared K3S-TOOLS Directory
       ansible.builtin.copy:
         src: ../k3s-tools
-        dest: /mnt/share/.kubernetes
+        dest: /mnt/archive/kubernetes
         owner: archive
         group: archive
         mode: "0777"
@@ -241,7 +241,9 @@
       shell: |
         mv /home/archive/setup-files/run-me-first-as-sudo.sh /home/archive/
         mv /home/archive/setup-files/01-netcfg.yaml /home/archive/
+        mv /home/archive/setup-files/gitea /home/archive/
         sudo chmod 775 /home/archive/run-me-first-as-sudo.sh
+        sudo chmod 775 /home/archive/gitea/install-gitea.sh
 
     # install docker
     - name: Installing Docker

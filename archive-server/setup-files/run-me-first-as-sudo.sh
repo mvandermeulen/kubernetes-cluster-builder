@@ -24,7 +24,10 @@ fi
 # -------- SET VARIABLES
 samba_user="archive"
 samba_path="/mnt/share"
-registry_path="/mnt/docker-registry"
+registry_path="/mnt/archive"
+DIR1="$registry_path"/kubernetes/
+DIR2="$registry_path"/kubernetes/docker-certs
+DIR3="$registry_path"/kubernetes/docker-certs/public
 
 
 
@@ -42,8 +45,6 @@ echo ----------------------------------------------------------------
 
 ################ CREATE REQUIRED DIRECTORIES ################
 #############################################################
-# CREATE DIRECTORIES
-DIR1=/mnt/share/.kubernetes/
 if [ ! -d "$DIR1" ]; then
   echo
   echo ---------------- Creating Directory ["$DIR1"]
@@ -51,7 +52,6 @@ if [ ! -d "$DIR1" ]; then
   sudo chmod 774 "$DIR1"
   sudo chown "$samba_user":"$samba_user" "$DIR1"
 fi
-DIR2=/mnt/share/.kubernetes/docker-certs
 if [ ! -d "$DIR2" ]; then
   echo
   echo ---------------- Creating Directory ["$DIR2"]
@@ -59,7 +59,6 @@ if [ ! -d "$DIR2" ]; then
   sudo chmod 774 "$DIR2"
   sudo chown "$samba_user":"$samba_user" "$DIR2"
 fi
-DIR3=/mnt/share/.kubernetes/docker-certs/public
 if [ ! -d "$DIR3" ]; then
   echo
   echo ---------------- Creating Directory ["$DIR3"]
@@ -72,8 +71,8 @@ fi
 
 ################ CREATING CERTIFICATES ################
 #######################################################
-FILE="$DIR2"/domain.crt
-if [ ! -f "$FILE" ]; then
+FILE1="$DIR2"/domain.crt
+if [ ! -f "$FILE1" ]; then
   echo
   echo ---------------- Creating Certificates
   sudo openssl req \
@@ -90,7 +89,12 @@ sudo mkdir -p /etc/docker/certs.d/192.168.7.150:5000
 sudo cp "$DIR2"/domain.crt /etc/docker/certs.d/192.168.7.150:5000/ca.crt
 sudo cp "$DIR2"/domain.crt /usr/share/ca-certificates/ca.crt
 sudo cp "$DIR2"/domain.crt /usr/local/share/ca-certificates/ca.crt
-sudo cp "$DIR2"/domain.crt "$DIR3"/ca.crt 
+
+# CHECK FOR EXISTING CERTIFICATE; COPY IF NOT FOUND
+FILE2="$DIR3"/ca.crt
+if [ ! -f "$FILE2" ]; then
+    sudo cp "$DIR2"/domain.crt "$FILE2"
+fi
 
 # UPDATE CERTIFICATES
 sudo update-ca-certificates
@@ -174,6 +178,15 @@ sudo systemctl restart smbd.service
 
 # get the samba service password
 sudo smbpasswd -a "$samba_user"
+
+
+
+################ INSTALLING GITEA ################
+##################################################
+cd ./gitea
+./install-gitea.sh "$registry_path"
+cd ..
+sudo rm -r ./gitea
 
 
 
