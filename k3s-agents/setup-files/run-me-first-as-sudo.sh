@@ -49,7 +49,7 @@ echo ----------------------------------------------------------------
 echo
 echo ---------------- COPYING PRIVATE DOCKER REPOSITORY CERTIFICATES
 # copy the certificate from the file-share to "/usr/local/share/ca-certificates/"
-sudo scp "$share_username"@"$share_ip":/mnt/share/.kubernetes/docker-certs/public/ca.crt /usr/local/share/ca-certificates/ca.crt
+sudo scp "$share_username"@"$share_ip":/mnt/archive/kubernetes/docker-certs/public/ca.crt /usr/local/share/ca-certificates/ca.crt
 
 # copy the certificate from the file-share to "/etc/docker/certs.d/{docker_ip}\:5000"
 sudo mkdir -p /etc/docker/certs.d/"$docker_repo_ip"\:5000
@@ -102,7 +102,7 @@ echo
 ##################################################
 # GET THE KUBERNETES SERVER TOKEN
 echo ---------------- GETTING THE KUBERNETES SERVER TOKEN
-sudo scp "$share_username"@"$share_ip":/mnt/share/.kubernetes/kubernetes.token /home/"$local_user"/kubernetes.token
+sudo scp "$share_username"@"$share_ip":/mnt/archive/kubernetes/kubernetes.token /home/"$local_user"/kubernetes.token
 kubernetes_token=$(cat /home/"$local_user"/kubernetes.token)
 echo "$kubernetes_token"
 echo

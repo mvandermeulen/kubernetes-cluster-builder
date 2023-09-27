@@ -131,8 +131,8 @@ function prompt_left() {
   # create output
   dude="\[\e[00m\]"
   dude+="\033[38;5;11m$hostname"
-  dude+="\[\e[00m\] $vLine "
-  dude+="\033[38;5;13m$username\[\e[00m\] $vLine "
+  dude+="\[\e[00m\] $vLine"
+  dude+="\033[38;5;15m\033[48;5;9m $username \[\e[00m\]$vLine "
   dude+="\033[38;5;10m$(pwd)\033[0m"
 
   # final output
